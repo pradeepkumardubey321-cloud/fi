@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FF Custom Tournament</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#0b1020;
+  color:white;
+}
+header{
+  background:#151d35;
+  padding:18px;
+  text-align:center;
+  font-size:24px;
+  font-weight:bold;
+}
+.container{
+  max-width:500px;
+  margin:auto;
+  padding:15px;
+}
+.card{
+  background:#171f38;
+  border-radius:15px;
+  padding:18px;
+  margin:15px 0;
+  box-shadow:0 5px 20px #0005;
+}
+input,button{
+  width:100%;
+  padding:13px;
+  margin:7px 0;
+  border:0;
+  border-radius:9px;
+}
+input{background:#fff;color:#111}
+button{
+  background:#ffb300;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:disabled{
+  background:#555;
+  color:#aaa;
+}
+.price{
+  color:#00e676;
+  font-size:20px;
+  font-weight:bold;
+}
+.closed{
+  color:#ff5252;
+  font-weight:bold;
+}
+.players{
+  color:#90caf9;
+}
+.room{
+  background:#102d20;
+  border:1px solid #00e676;
+  padding:12px;
+  border-radius:10px;
+  margin-top:10px;
+}
+.hidden{display:none}
+.small{color:#aaa;font-size:13px}
+</style>
+</head>
+
+<body>
+
+<header>🔥 FF CUSTOM TOURNAMENT 🔥</header>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div id="loginBox" class="card">
+<h2>Player Login</h2>
+
+<input id="name" placeholder="Your Name">
+<input id="mobile" placeholder="Mobile Number">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="login()">LOGIN / SIGNUP</button>
+
+<p class="small">
+Demo version: account browser में save होगा.
+</p>
+</div>
+
+<!-- PLAYER -->
+<div id="playerPanel" class="hidden">
+
+<div class="card">
+<h2>👤 Player</h2>
+<p id="welcome"></p>
+<button onclick="logout()">Logout</button>
+</div>
+
+<div id="tournaments"></div>
+
+</div>
+
+</div>
+
+<script>
+
+let currentUser =
+JSON.parse(localStorage.getItem("currentUser")) || null;
+
+let tournaments = JSON.parse(
+localStorage.getItem("tournaments")
+) || {
+
+one:{
+ name:"Custom 1",
+ price:1,
+ time:"12:00 PM",
+ players:[]
+},
+
+two:{
+ name:"Custom 2",
+ price:2,
+ time:"2:00 PM",
+ players:[]
+},
+
+five:{
+ name:"Custom 3",
+ price:5,
+ time:"6:00 PM",
+ players:[]
+},
+
+ten:{
+ name:"Custom 4",
+ price:10,
+ time:"8:00 PM",
+ players:[]
+}
+
+};
+
+function save(){
+localStorage.setItem(
+"tournaments",
+JSON.stringify(tournaments)
+);
+}
+
+function login(){
+
+let name=document.getElementById("name").value.trim();
+let mobile=document.getElementById("mobile").value.trim();
+let password=document.getElementById("password").value.trim();
+
+if(!name || !mobile || !password){
+alert("Sab details bharo");
+return;
+}
+
+currentUser={
+name:name,
+mobile:mobile
+};
+
+localStorage.setItem(
+"currentUser",
+JSON.stringify(currentUser)
+);
+
+showPlayer();
+
+}
+
+function showPlayer(){
+
+document.getElementById("loginBox")
+.classList.add("hidden");
+
+document.getElementById("playerPanel")
+.classList.remove("hidden");
+
+document.getElementById("welcome").innerHTML=
+"Welcome, <b>"+currentUser.name+"</b>";
+
+renderTournaments();
+
+}
+
+function logout(){
+
+localStorage.removeItem("currentUser");
+location.reload();
+
+}
+
+function renderTournaments(){
+
+let box=document.getElementById("tournaments");
+
+box.innerHTML="";
+
+for(let id in tournaments){
+
+let t=tournaments[id];
+
+let count=t.players.length;
+
+let full=count>=8;
+
+let joined=t.players.some(
+p=>p.mobile===currentUser.mobile
+);
+
+let html=`
+
+<div class="card">
+
+<h2>${t.name}</h2>
+
+<div class="price">Entry ₹${t.price}</div>
+
+<p>⏰ Time: ${t.time}</p>
+
+<p class="players">
+👥 Players: ${count}/8
+</p>
+
+<p>
+🔵 Team A: ${Math.min(
+4,
+t.players.filter(p=>p.team==="A").length
+)}/4
+<br>
+🔴 Team B: ${Math.min(
+4,
+t.players.filter(p=>p.team==="B").length
+)}/4
+</p>
+
+`;
+
+if(joined){
+
+html+=`
+<p style="color:#00e676">
+✓ You have joined this custom
+</p>
+`;
+
+let player=t.players.find(
+p=>p.mobile===currentUser.mobile
+);
+
+if(player.approved && player.roomId){
+
+html+=`
+
+<div class="room">
+
+<b>🎮 ROOM DETAILS</b>
+
+<p>Room ID:
+<strong>${player.roomId}</strong>
+</p>
+
+<p>Password:
+<strong>${player.roomPassword}</strong>
+</p>
+
+<p>Team:
+<strong>${player.team}</strong>
+</p>
+
+</div>
+
+`;
+
+}else{
+
+html+=`
+<p class="small">
+Payment/entry approval pending.
+</p>
+`;
+
+}
+
+}else if(full){
+
+html+=`
+<p class="closed">🔒 CLOSED — 8/8 PLAYERS</p>
+`;
+
+}else{
+
+html+=`
+
+<button
+onclick="joinTournament('${id}')">
+JOIN CUSTOM ₹${t.price}
+</button>
+
+`;
+
+}
+
+html+=`</div>`;
+
+box.innerHTML+=html;
+
+}
+
+}
+
+function joinTournament(id){
+
+let uid=prompt(
+"Apni Free Fire UID enter karo:"
+);
+
+if(!uid){
+return;
+}
+
+let t=tournaments[id];
+
+if(t.players.length>=8){
+
+alert("Custom full hai");
+
+return;
+
+}
+
+if(t.players.some(
+p=>p.mobile===currentUser.mobile
+)){
+
+alert("Aap already joined ho");
+
+return;
+
+}
+
+let teamA=t.players.filter(
+p=>p.team==="A"
+).length;
+
+let team=
+teamA<4 ? "A" : "B";
+
+t.players.push({
+
+name:currentUser.name,
+
+mobile:currentUser.mobile,
+
+uid:uid,
+
+team:team,
+
+approved:false,
+
+roomId:"",
+
+roomPassword:""
+
+});
+
+save();
+
+alert(
+"Entry request submit ho gayi.\n\n"+
+"Team: "+team+
+"\nUID: "+uid
+);
+
+renderTournaments();
+
+}
+
+if(currentUser){
+showPlayer();
+}
+
+</script>
+
+</body>
+</html>
